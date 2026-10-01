@@ -1,4 +1,4 @@
-.PHONY: bb clean clean-keep-sstate fetch fetch-all fetch-install help update-repos.conf sdk venus-image venus-images $(addsuffix bb-,$(MACHINES)) $(addsuffix -venus-image,$(MACHINES))
+.PHONY: bb clean clean-keep-sstate fetch fetch-all fetch-install help update-repos.conf sdk venus-image venus-images containers $(addsuffix bb-,$(MACHINES)) $(addsuffix -venus-image,$(MACHINES))
 
 SHELL = bash
 CONFIG ?= scarthgap
@@ -33,6 +33,13 @@ help:
 	@echo "      - Builds swu files for all MACHINES"
 	@echo "    make swus-large"
 	@echo "      - Builds swu files for all MACHINES_LARGE"
+	@echo
+	@echo "  Containers"
+	@echo "    make container-arm64"
+	@echo "      - Builds the container image for arm64."
+	@echo "        Other MACHINES_CONTAINER: container-armv7, container-amd64"
+	@echo "    make containers"
+	@echo "      - Builds all of MACHINES_CONTAINER."
 	@echo
 	@echo "  Building (bootable) images is also supported, but it depends on the machine"
 	@echo "    make beaglebone-venus-image"
@@ -165,6 +172,12 @@ swu-large: build/conf/bblayers.conf
 swus: $(addsuffix -swu,$(MACHINES))
 
 swus-large: $(addsuffix -swu-large,$(MACHINES_LARGE))
+
+# builds the container image of one of MACHINES_CONTAINER
+$(MACHINES_CONTAINER): build/conf/bblayers.conf
+	export MACHINE=$@ && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake venus-image-container
+
+containers: $(MACHINES_CONTAINER)
 
 # complete machine specific build / no sdk
 %-machine: build/conf/bblayers.conf
