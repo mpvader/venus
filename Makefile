@@ -1,4 +1,4 @@
-.PHONY: bb clean clean-keep-sstate fetch fetch-all fetch-install help update-repos.conf sdk venus-image venus-images $(addsuffix bb-,$(MACHINES)) $(addsuffix -venus-image,$(MACHINES))
+.PHONY: bb clean clean-keep-sstate fetch fetch-all fetch-install help update-repos.conf sdk venus-image venus-images container-gx $(addsuffix bb-,$(MACHINES)) $(addsuffix -venus-image,$(MACHINES))
 
 SHELL = bash
 CONFIG ?= scarthgap
@@ -34,6 +34,13 @@ help:
 	@echo "      - Builds swu files for all MACHINES"
 	@echo "    make swus-large"
 	@echo "      - Builds swu files for all MACHINES_LARGE"
+	@echo
+	@echo "  Containers"
+	@echo "    make container-gx-arm64"
+	@echo "      - Builds the container image for arm64."
+	@echo "        Other MACHINES_CONTAINER_GX: container-gx-armv7, container-gx-amd64"
+	@echo "    make container-gx"
+	@echo "      - Builds all of MACHINES_CONTAINER_GX."
 	@echo
 	@echo "  Building (bootable) images is also supported, but it depends on the machine"
 	@echo "    make beaglebone-venus-image"
@@ -173,6 +180,12 @@ swu-large: build/conf/bblayers.conf
 swus: $(addsuffix -swu,$(MACHINES))
 
 swus-large: $(addsuffix -swu-large,$(MACHINES_LARGE))
+
+# builds the container image of one of MACHINES_CONTAINER_GX
+$(MACHINES_CONTAINER_GX): build/conf/bblayers.conf
+	export MACHINE=$@ && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake container-gx-image
+
+container-gx: $(MACHINES_CONTAINER_GX)
 
 # complete machine specific build / no sdk
 %-machine: build/conf/bblayers.conf
