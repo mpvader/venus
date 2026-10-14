@@ -53,7 +53,7 @@ help:
 	@echo "      - Builds everything for a given machine. This includes the image / optional packages"
 	@echo "        etc. Hence this make take some time (building java, nodejs etc). I doesn't build a sdk"
 	@echo "    make machines"
-	@echo "      - like above, but for all MACHINES"
+	@echo "      - like above, but for all MACHINES, plus MACHINES_CONTAINER_GX"
 	@echo
 	@echo "  Software development kits"
 	@echo "    make sdks"
@@ -183,10 +183,14 @@ swus-large: $(addsuffix -swu-large,$(MACHINES_LARGE))
 
 # builds the container image of one of MACHINES_CONTAINER_GX
 $(MACHINES_CONTAINER_GX): build/conf/bblayers.conf
-	export MACHINE=$@ && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake container-gx-image
+	@export BB_ENV_PASSTHROUGH_ADDITIONS="${PASSTHROUGH}" && \
+	export MACHINE=$@ && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && \
+	bitbake container-gx-image && \
+	bitbake package-index
 	./container_loadable.sh $@
 
 container-gx: $(MACHINES_CONTAINER_GX)
+.PHONY: $(MACHINES_CONTAINER_GX)
 
 # complete machine specific build / no sdk
 %-machine: build/conf/bblayers.conf
@@ -195,7 +199,7 @@ container-gx: $(MACHINES_CONTAINER_GX)
 	bitbake packagegroup-venus packagegroup-venus-machine packagegroup-venus-optional-packages && \
 	bitbake package-index
 
-machines: $(addsuffix -machine,$(MACHINES))
+machines: $(addsuffix -machine,$(MACHINES)) container-gx
 
 update-repos.conf:
 	@conf=$$PWD/conf/repos.conf; echo -n > $$conf && ./repos_cmd "git-show-remote.sh \$$repo >> $$conf" && sed -i -e '/^install /d' $$conf
@@ -224,6 +228,7 @@ MC_MACHINE = $(addprefix mc:,$(addsuffix :packagegroup-venus-machine,$(MACHINES)
 # it would always be needed to load it even when not used.
 MC_MACHINE_DEPS = k3r5
 MC_OPTIONAL = $(addprefix mc:,$(addsuffix :packagegroup-venus-optional-packages,$(MACHINES)))
+MC_CONTAINER_GX = $(addprefix mc:,$(addsuffix :container-gx-image,$(MACHINES_CONTAINER_GX)))
 MC_A8_SDK = mc:ccgx:venus-sdk
 MC_SDKS = $(MC_A8_SDK) mc:sdk-aarch64:venus-sdk
 
@@ -247,8 +252,8 @@ mc-venus: build/conf/bblayers.conf
 	export MACHINE=am62xx && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && \
 	bitbake mc:k3r5:u-boot-k3r5
 
-	@export BB_ENV_PASSTHROUGH_ADDITIONS="BBMULTICONFIG ${PASSTHROUGH}" BBMULTICONFIG="$(MACHINES) $(MC_MACHINE_DEPS) sdk-aarch64" && \
-	. ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake $(MC_SDKS) $(MC_VENUS) $(MC_MACHINE) $(MC_OPTIONAL) && \
+	@export BB_ENV_PASSTHROUGH_ADDITIONS="BBMULTICONFIG ${PASSTHROUGH}" BBMULTICONFIG="$(MACHINES) $(MACHINES_CONTAINER_GX) $(MC_MACHINE_DEPS) sdk-aarch64" && \
+	. ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake $(MC_SDKS) $(MC_VENUS) $(MC_MACHINE) $(MC_OPTIONAL) $(MC_CONTAINER_GX) && \
 	./bitbake-mc.sh package-index
 
 %-mc-bb: build/conf/bblayers.conf
