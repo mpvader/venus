@@ -260,25 +260,24 @@ docker load -i deploy/venus/images/container-arm64/venus-container-v3.90-beta5-o
 For details on using the container-GX image, see
 [container-GX](https://github.com/victronenergy/container-GX).
 
-#### Step 2 — Publish: `./container_release.sh <beta|release>`
+#### Step 2 — Feeds and registries
 
-Publish the three built architectures as one multi-architecture image under
-its immutable version tag and advance the channel tag:
+CI builds the containers with the other machines. Each feed has, next to
+the swu files, `images/<machine>/venus-<machine>.tar` and the
+`venus-container-version` file, which a container checks for updates.
 
-```sh
-./container_release.sh beta
-```
-
-The destination repositories are defined in `container_release.sh`. Publishing
-needs `skopeo` and `python3`; authenticate with each registry first
-(`skopeo login`).
+`do_release.sh candidate` also publishes the containers in the candidate
+feed under the `beta` tag, and `do_release.sh release` the ones in the
+release feed under `latest`, both through `container_release.sh`. That needs
+`skopeo` and `python3`, and a `skopeo login` to each registry in
+`container_release.sh`.
 
 Published tags have these meanings:
 
 | Tag | Meaning |
 |---|---|
-| `beta` | Most recently published beta |
-| `latest` | Most recently published official release |
+| `beta` | Most recent version in the candidate feed |
+| `latest` | Most recent version in the release feed |
 | `v3.80` | Immutable official release |
 | `v3.90-beta1` | Immutable beta |
 

@@ -46,9 +46,32 @@ function release ()
 	call "rsync $args $exclude -rpt --delete $from/ $to"
 }
 
+# publish the containers in a feed to the registries, see container_release.sh; do
+# this before promoting the feed, so the GUI never offers an image that the
+# registries don't have yet
+function publish_containers ()
+{
+	(
+		set -e
+		mkdir -p deploy
+		dir=$(mktemp -d deploy/containers-$1.XXXXXX)
+		trap 'rm -r $dir' EXIT
+		for machine in container-amd64 container-arm64 container-armv7; do
+			mkdir $dir/$machine
+			rsync -L $REMOTE:$D$1/images/$machine/venus-container-version $dir/$machine/
+			rsync -L $REMOTE:$D$1/images/$machine/venus-$machine.tar $dir/$machine/
+		done
+		./container_release.sh $2 $dir
+	) || {
+		echo "ERROR: containers not published, feeds not changed"
+		exit 1
+	}
+}
+
 case $1 in
 	release )
 		echo "Candidate -> Release"
+		publish_containers candidate release
 		release candidate release
 		;;
 	backup )
@@ -57,6 +80,7 @@ case $1 in
 		;;
 	candidate )
 		echo "Testing -> Candidate"
+		publish_containers testing beta
 		release testing candidate
 		;;
 	testing )
@@ -66,11 +90,13 @@ case $1 in
 	skip-candidate )
 		echo "Testing -> Release (skips candidate!)"
 		read -n1 -r -p "Press any key to continue... Or CTRL-C to abort"
+		publish_containers testing release
 		release testing release
 		;;
 	skip-testing )
 		echo "Develop -> Candidate (skips testing!)"
 		read -n1 -r -p "Press any key to continue... Or CTRL-C to abort"
+		publish_containers develop beta
 		release develop candidate
 		;;
 	*)

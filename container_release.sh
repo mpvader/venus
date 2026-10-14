@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
-# Publish the built OCI archives as one multi-architecture image under
-# immutable version and channel tags.
+# Publish the OCI archives of a feed as one multi-architecture image under
+# immutable version and channel tags. do_release.sh calls this with the
+# archives it fetched from the candidate or release feed.
 #
-# usage: ./container_release.sh <beta|release>
+# usage: ./container_release.sh <beta|release> <dir with a directory per machine>
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 usage() {
-    echo "Usage: $0 <beta|release>" >&2
+    echo "Usage: $0 <beta|release> <dir>" >&2
     exit 1
 }
 
-[ "$#" -eq 1 ] || usage
+[ "$#" -eq 2 ] || usage
 CHANNEL="$1"
+SRC="$2"
 
 REPOS=(
     "ghcr.io/victronenergy/container-gx"
@@ -40,24 +42,21 @@ declare -A ARCHIVES
 VERSION=""
 
 for machine in "${MACHINES[@]}"; do
-    deploy_images="deploy/venus/images/${machine}"
-    shopt -s nullglob
-    archives=("${deploy_images}"/venus-container-*-oci.tar)
-    shopt -u nullglob
-    if [ "${#archives[@]}" -ne 1 ]; then
-        echo "ERROR: expected one OCI archive reference in $deploy_images" >&2
+    archive="${SRC}/${machine}/venus-${machine}.tar"
+    if [ ! -f "$archive" ] || [ ! -f "${SRC}/${machine}/venus-container-version" ]; then
+        echo "ERROR: no OCI archive or venus-container-version in ${SRC}/${machine}" >&2
         exit 1
     fi
 
-    artifact="${archives[0]##*/}"
-    version="${artifact#venus-container-}"
-    version="${version%-oci.tar}"
+    # ~ isn't allowed in a tag, see OCI_IMAGE_TAG in venus-image-container.bb
+    version="$(sed -n 1p "${SRC}/${machine}/venus-container-version")"
+    version="${version//\~/-}"
     if [ -n "$VERSION" ] && [ "$version" != "$VERSION" ]; then
         echo "ERROR: OCI archives do not have a common Venus version" >&2
         exit 1
     fi
     VERSION="$version"
-    ARCHIVES["$machine"]="${archives[0]}"
+    ARCHIVES["$machine"]="$archive"
 done
 
 case "$VERSION" in
@@ -67,10 +66,10 @@ case "$VERSION" in
         ;;
 esac
 
-# betas have a - in their version, from the ~ in DISTRO_VERSION
+# betas have a - in their version; a release also goes to candidate, so
+# beta can get a release version
 case "$CHANNEL:$VERSION" in
-    beta:*-*) ;;
-    beta:*|release:*-*)
+    release:*-*)
         echo "ERROR: version $VERSION cannot go to the $CHANNEL channel" >&2
         exit 1
         ;;
@@ -167,8 +166,9 @@ raw_digest() {
     echo "sha256:$(skopeo inspect --raw "$1" | sha256sum | cut -d' ' -f1)"
 }
 
-# An existing version tag must hold this very image, so that a release that
-# stopped halfway can be run again.
+# A release is published with its version tag when it goes to candidate;
+# moving it to release then only moves latest. An existing version tag must
+# hold this very image.
 NEW_REPOS=()
 for repo in "${REPOS[@]}"; do
     immutable="docker://${repo}:${VERSION}"
