@@ -97,6 +97,25 @@ function image
 	done
 }
 
+# The container image archive, named like the swu files, and the version file that
+# check-updates.sh in a container reads from the feed.
+function container_images
+{
+	for v in $(find deploy/venus/images -name venus-container-version); do
+		dir=$(dirname $v)
+		machine=$(basename $dir)
+		version=$(sed -n 1p $v)
+		name=venus-$machine-$(sed -n 3p $v)-$version.tar
+		dst=$images/$machine
+		mkdir -p $dst
+
+		echo "$dir -> $dst"
+		cp $(realpath $dir/venus-container-${version//\~/-}-oci.tar) $dst/$name
+		ln -s $name $dst/venus-$machine.tar
+		cp $v $dst/venus-container-version
+	done
+}
+
 function suffix_symlinks
 {
 	ext="$1"
@@ -150,5 +169,6 @@ image venus-install-sdcard img.zip
 image venus-swu swu
 wic_images
 image venus-upgrade-image zip
+container_images
 sdk
 compat_symlinks
