@@ -185,7 +185,7 @@ containers: $(MACHINES_CONTAINER)
 	bitbake packagegroup-venus packagegroup-venus-machine packagegroup-venus-optional-packages && \
 	bitbake package-index
 
-machines: $(addsuffix -machine,$(MACHINES))
+machines: $(addsuffix -machine,$(MACHINES)) containers
 
 update-repos.conf:
 	@conf=$$PWD/conf/repos.conf; echo -n > $$conf && ./repos_cmd "git-show-remote.sh \$$repo >> $$conf" && sed -i -e '/^install /d' $$conf
@@ -212,6 +212,7 @@ MC_MACHINE = $(addprefix mc:,$(addsuffix :packagegroup-venus-machine,$(MACHINES)
 # it would always be needed to load it even when not used.
 MC_MACHINE_DEPS = k3r5
 MC_OPTIONAL = $(addprefix mc:,$(addsuffix :packagegroup-venus-optional-packages,$(MACHINES)))
+MC_CONTAINER = $(addprefix mc:,$(addsuffix :venus-image-container,$(MACHINES_CONTAINER)))
 MC_A8_SDK = mc:ccgx:venus-sdk
 MC_SDKS = $(MC_A8_SDK) mc:sdk-aarch64:venus-sdk
 
@@ -234,8 +235,8 @@ mc-venus: build/conf/bblayers.conf
 	export MACHINE=am62xx && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && \
 	 bitbake mc:k3r5:u-boot-k3r5
 
-	export BB_ENV_PASSTHROUGH_ADDITIONS="BBMULTICONFIG" BBMULTICONFIG="$(MACHINES) $(MC_MACHINE_DEPS) sdk-aarch64" && \
-	. ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake $(MC_SDKS) $(MC_VENUS) $(MC_MACHINE) $(MC_OPTIONAL) && \
+	export BB_ENV_PASSTHROUGH_ADDITIONS="BBMULTICONFIG" BBMULTICONFIG="$(MACHINES) $(MACHINES_CONTAINER) $(MC_MACHINE_DEPS) sdk-aarch64" && \
+	. ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake $(MC_SDKS) $(MC_VENUS) $(MC_MACHINE) $(MC_OPTIONAL) $(MC_CONTAINER) && \
 	./bitbake-mc.sh package-index
 
 %-mc-bb: build/conf/bblayers.conf
