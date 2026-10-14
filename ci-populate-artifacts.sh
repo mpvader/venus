@@ -71,6 +71,8 @@ function ipkgs
 		# remove unused packages
 		find $dst -type d -name i686-nativesdk -prune -exec rm -rf {} \;
 		find $dst -type d -name x86_64-nativesdk -prune -exec rm -rf {} \;
+		# no feeds for the container machines and core2-64, see venus-feed-configs
+		find $dst -type d \( -name core2-64 -o -name 'container_*' \) -prune -exec rm -rf {} \;
 
 		# check packages
 		find $dst -name "*-dbg_*.ipk" | while read ipk; do handle_dbg_pkg "$ipk"; done
