@@ -250,11 +250,13 @@ make container-gx
 This builds container-gx-amd64, container-gx-arm64 and container-gx-armv7;
 `make container-gx-arm64` and the like build one of them.
 
-BitBake creates an OCI archive, `<machine>-<version>-oci.tar`, which is also
-what gets published. Docker and Podman load it as `container-gx:<version>`:
+BitBake creates an OCI archive, `<machine>-<version>-oci.tar`, which is
+what gets published. Docker's classic image store cannot load it, so the build
+also creates `<machine>-loadable.tar`, with skopeo. Docker and Podman load
+that as `container-gx:<version>`:
 
 ```sh
-docker load -i deploy/venus/images/container-gx-arm64/container-gx-arm64-v3.90-beta5-oci.tar
+docker load -i deploy/venus/images/container-gx-arm64/container-gx-arm64-loadable.tar
 ```
 
 For details on using the Container GX image, see
