@@ -37,7 +37,7 @@ help:
 	@echo
 	@echo "  Containers"
 	@echo "    make container-gx-arm64"
-	@echo "      - Builds the container image for arm64."
+	@echo "      - Builds the container image for arm64, with a docker-loadable archive."
 	@echo "        Other MACHINES_CONTAINER_GX: container-gx-armv7, container-gx-amd64"
 	@echo "    make container-gx"
 	@echo "      - Builds all of MACHINES_CONTAINER_GX."
@@ -144,7 +144,7 @@ prereq:
 		desktop-file-utils chrpath u-boot-tools imagemagick zip \
 		python3-dev python3-setuptools \
 		cpio file lz4 zstd xz-utils locales iputils-ping socat \
-		python3-git python3-jinja2 python3-pexpect python3-subunit
+		python3-git python3-jinja2 python3-pexpect python3-subunit skopeo
 
 cortexa7hf-sdk: build/conf/bblayers.conf
 	export BB_ENV_PASSTHROUGH_ADDITIONS="${PASSTHROUGH}" && \
@@ -184,6 +184,7 @@ swus-large: $(addsuffix -swu-large,$(MACHINES_LARGE))
 # builds the container image of one of MACHINES_CONTAINER_GX
 $(MACHINES_CONTAINER_GX): build/conf/bblayers.conf
 	export MACHINE=$@ && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && bitbake container-gx-image
+	./container_loadable.sh $@
 
 container-gx: $(MACHINES_CONTAINER_GX)
 
