@@ -84,9 +84,7 @@ function image
 {
 	if [ ! -d deploy/venus/images ]; then return; fi
 
-	prefix=$1
-	ext=$2
-	for a in $(find deploy/venus/images -name "$prefix-*.$ext" -type l); do
+	for a in $(find deploy/venus/images -name "$1" -type l); do
 		machine=$(basename $(dirname $a))
 		dst=$images/$machine
 		if [ ! -d $dst ]; then mkdir -p $dst; fi
@@ -117,7 +115,7 @@ function suffix_symlinks
 function wic_images
 {
 	# gzip the wic files
-	image venus-image wic
+	image 'venus-image-*.wic'
 	suffix_symlinks "wic" "gz"
 	find "$out" -type f -name "*.wic" -exec pigz {} \;
 }
@@ -148,9 +146,14 @@ function compat_symlinks
 
 debs
 ipkgs
-image venus-install-sdcard img.zip
-image venus-swu swu
+image 'venus-install-sdcard-*.img.zip'
+image 'venus-swu-*.swu'
 wic_images
-image venus-upgrade-image zip
+image 'venus-upgrade-image-*.zip'
+# only for the build-feeds server, not the develop feed of the full build
+if [ "$2" = container-gx ]; then
+	image 'container-gx-*-oci.tar'
+	image 'container-gx-*-loadable.tar'
+fi
 sdk
 compat_symlinks

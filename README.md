@@ -249,7 +249,8 @@ make container-gx
 
 This builds container-gx-amd64, container-gx-arm64 and container-gx-armv7;
 `make container-gx-arm64` and the like build one of them. CI builds them with
-the other machines, but doesn't upload the images.
+the other machines; a branch build puts the OCI and loadable archives in
+`https://build-feeds.victronenergy.com/venus/<branch>/images/<machine>/`.
 
 BitBake creates an OCI archive, `<machine>-<version>-oci.tar`, which is
 what gets published. Docker's classic image store cannot load it, so the build
