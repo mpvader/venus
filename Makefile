@@ -39,8 +39,12 @@ help:
 	@echo "    make container-gx-arm64"
 	@echo "      - Builds the container image for arm64, with a docker-loadable archive."
 	@echo "        Other MACHINES_CONTAINER_GX: container-gx-armv7, container-gx-amd64"
+	@echo "    make container-gx-arm64-large"
+	@echo "      - Builds the large variant of the same"
 	@echo "    make container-gx"
 	@echo "      - Builds all of MACHINES_CONTAINER_GX."
+	@echo "    make container-gx-large"
+	@echo "      - Builds the large variant of all of MACHINES_CONTAINER_GX."
 	@echo
 	@echo "  Building (bootable) images is also supported, but it depends on the machine"
 	@echo "    make beaglebone-venus-image"
@@ -53,7 +57,7 @@ help:
 	@echo "      - Builds everything for a given machine. This includes the image / optional packages"
 	@echo "        etc. Hence this make take some time (building java, nodejs etc). I doesn't build a sdk"
 	@echo "    make machines"
-	@echo "      - like above, but for all MACHINES, plus MACHINES_CONTAINER_GX"
+	@echo "      - like above, but for all MACHINES, plus both images of MACHINES_CONTAINER_GX"
 	@echo
 	@echo "  Software development kits"
 	@echo "    make sdks"
@@ -189,8 +193,16 @@ $(MACHINES_CONTAINER_GX): build/conf/bblayers.conf
 	bitbake package-index
 	./container_loadable.sh $@
 
+$(addsuffix -large,$(MACHINES_CONTAINER_GX)): %-large: build/conf/bblayers.conf
+	@export BB_ENV_PASSTHROUGH_ADDITIONS="${PASSTHROUGH}" && \
+	export MACHINE=$* && . ./sources/openembedded-core/oe-init-build-env build sources/bitbake && \
+	bitbake container-gx-image-large && \
+	bitbake package-index
+	./container_loadable.sh $* large
+
 container-gx: $(MACHINES_CONTAINER_GX)
-.PHONY: $(MACHINES_CONTAINER_GX)
+container-gx-large: $(addsuffix -large,$(MACHINES_CONTAINER_GX))
+.PHONY: $(MACHINES_CONTAINER_GX) $(addsuffix -large,$(MACHINES_CONTAINER_GX)) container-gx-large
 
 # complete machine specific build / no sdk
 %-machine: build/conf/bblayers.conf
@@ -199,7 +211,7 @@ container-gx: $(MACHINES_CONTAINER_GX)
 	bitbake packagegroup-venus packagegroup-venus-machine packagegroup-venus-optional-packages && \
 	bitbake package-index
 
-machines: $(addsuffix -machine,$(MACHINES)) container-gx
+machines: $(addsuffix -machine,$(MACHINES)) container-gx container-gx-large
 
 update-repos.conf:
 	@conf=$$PWD/conf/repos.conf; echo -n > $$conf && ./repos_cmd "git-show-remote.sh \$$repo >> $$conf" && sed -i -e '/^install /d' $$conf
@@ -228,7 +240,7 @@ MC_MACHINE = $(addprefix mc:,$(addsuffix :packagegroup-venus-machine,$(MACHINES)
 # it would always be needed to load it even when not used.
 MC_MACHINE_DEPS = k3r5
 MC_OPTIONAL = $(addprefix mc:,$(addsuffix :packagegroup-venus-optional-packages,$(MACHINES)))
-MC_CONTAINER_GX = $(addprefix mc:,$(addsuffix :container-gx-image,$(MACHINES_CONTAINER_GX)))
+MC_CONTAINER_GX = $(foreach m,$(MACHINES_CONTAINER_GX),mc:$(m):container-gx-image mc:$(m):container-gx-image-large)
 MC_A8_SDK = mc:ccgx:venus-sdk
 MC_SDKS = $(MC_A8_SDK) mc:sdk-aarch64:venus-sdk
 

@@ -248,14 +248,17 @@ make container-gx
 ```
 
 This builds container-gx-amd64, container-gx-arm64 and container-gx-armv7;
-`make container-gx-arm64` and the like build one of them. CI builds them with
-the other machines; a branch build puts the OCI and loadable archives in
+`make container-gx-arm64` and the like build one of them. `make
+container-gx-large` and `make container-gx-arm64-large` build the large image,
+with Node-RED and Signal K; its files are named container-gx-large-arm64 and
+the like. CI builds both with the other machines; a branch build puts the OCI
+and loadable archives in
 `https://build-feeds.victronenergy.com/venus/<branch>/images/<machine>/`.
 
 BitBake creates an OCI archive, `<machine>-<version>-oci.tar`, which is
 what gets published. Docker's classic image store cannot load it, so the build
 also creates `<machine>-loadable.tar`, with skopeo. Docker and Podman load
-that as `container-gx:<version>`:
+that as `container-gx:<version>`, or `container-gx-large:<version>`:
 
 ```sh
 docker load -i deploy/venus/images/container-gx-arm64/container-gx-arm64-loadable.tar
@@ -271,6 +274,7 @@ its version tag, and move the beta or latest tag to it:
 
 ```sh
 ./container_release.sh beta
+./container_release.sh beta large
 ```
 
 The destination repositories are defined in `container_release.sh`. Publishing

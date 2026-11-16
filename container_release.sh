@@ -2,22 +2,24 @@
 # Publish the built OCI archives as one multi-architecture image under its
 # version tag, and move the beta or latest tag to it.
 #
-# usage: ./container_release.sh <beta|release>
+# usage: ./container_release.sh <beta|release> [large]
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 usage() {
-    echo "Usage: $0 <beta|release>" >&2
+    echo "Usage: $0 <beta|release> [large]" >&2
     exit 1
 }
 
-[ "$#" -eq 1 ] || usage
+[ "$#" -eq 1 ] || { [ "$#" -eq 2 ] && [ "$2" = large ]; } || usage
 CHANNEL="$1"
+# container-gx or container-gx-large
+IMAGE="container-gx${2:+-$2}"
 
 REGISTRY_REPOS=(
-    "ghcr.io/victronenergy/container-gx"
-    "docker.io/victronenergy/container-gx"
+    "ghcr.io/victronenergy/${IMAGE}"
+    "docker.io/victronenergy/${IMAGE}"
 )
 
 MACHINES_CONTAINER_GX=(container-gx-amd64 container-gx-arm64 container-gx-armv7)
@@ -41,16 +43,17 @@ VERSION=""
 
 for machine in "${MACHINES_CONTAINER_GX[@]}"; do
     deploy_images="deploy/venus/images/${machine}"
+    name="${IMAGE}-${machine#container-gx-}"
     shopt -s nullglob
-    archives=("${deploy_images}/${machine}"-*-oci.tar)
+    archives=("${deploy_images}/${name}"-*-oci.tar)
     shopt -u nullglob
     if [ "${#archives[@]}" -ne 1 ]; then
-        echo "ERROR: expected one ${machine}-*-oci.tar in $deploy_images" >&2
+        echo "ERROR: expected one ${name}-*-oci.tar in $deploy_images" >&2
         exit 1
     fi
 
     link="${archives[0]##*/}"
-    version="${link#"${machine}"-}"
+    version="${link#"${name}"-}"
     version="${version%-oci.tar}"
     if [ -n "$VERSION" ] && [ "$version" != "$VERSION" ]; then
         echo "ERROR: the OCI archives have different versions" >&2
