@@ -70,7 +70,7 @@ def git_diff(files):
 			subprocess.run(["git", "-C", info.repo, "diff", "--staged"])
 		done.append(info.repo)
 
-def git_commit(files, msg):
+def git_commit(files, msg, edit):
 	done = []
 	for file in files:
 		info = find_repo(file)
@@ -78,7 +78,7 @@ def git_commit(files, msg):
 			with tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', delete_on_close=False) as fh:
 				fh.write(msg)
 				fh.close()
-				subprocess.run(["git", "-C", info.repo, "commit", "-e", "-F", fh.name])
+				subprocess.run(["git", "-C", info.repo, "commit", "-F", fh.name] + (["-e"] if edit else []), check=not edit)
 				done.append(info.repo)
 
 def git_nothing_to_commit(files):
@@ -531,6 +531,7 @@ parser = argparse.ArgumentParser(
 				"It will read till EOF, which is CTRL-D."
 	)
 parser.add_argument("-g", "--git", action="store_true", help = "stage change for commit (only useful for non-interactive mode)")
+parser.add_argument("-y", "--yes", action="store_true", help = "commit one TODO item from stdin, without asking and without the editor")
 parser.add_argument("-v", "--verbose", action="store_true", help = "be more verbose")
 parser.add_argument("-s", "--save", action="store_true", help = "update the recipe itself")
 parser.add_argument("file", type=str, nargs='?', help="bb file")
@@ -603,6 +604,8 @@ else:
 			pn = pn.lower()
 			bbfile = update_recipe(pn, pv)
 			if bbfile == False:
+				if args.yes:
+					exit(1)
 				continue
 			bbfiles.append(bbfile)
 
@@ -612,10 +615,12 @@ else:
 			continue
 
 		git_diff(bbfiles)
-		if not yes("Does that look ok? [y]"):
+		if not args.yes and not yes("Does that look ok? [y]"):
 			print("Sorry, giving up....")
 			exit(1)
 
 		msg = commit_msg(pnline, lines[1:])
-		git_commit(bbfiles, msg)
+		git_commit(bbfiles, msg, edit=not args.yes)
+		if args.yes:
+			break
 
