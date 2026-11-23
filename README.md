@@ -142,6 +142,56 @@ git push origin v2.21
 ./repos push origin v2.21
 ```
 
+### Tools
+
+`make help` lists the make targets.
+
+The repos in `sources/`:
+- `./repos <git arguments>`: runs git in each of them, see above.
+- `./repos_cmd '<command>'`: runs a shell command in each of them, with
+  `$repo`, `$checkout_branch` and the other fields of `conf/repos.conf`
+  set.
+- `./push-status.sh`: per repo, the commits a push to origin would add,
+  remove or rewrite.
+- `./do_push.sh`: pushes the checkout branch of each of them to origin.
+- `./ci-rebase-on-upstream.sh`: rebases the checkout branch of the
+  repos that have an upstream onto it, and pushes the result to venus-ci on
+  git.victronenergy.com.
+
+Changing recipes:
+- `./update-recipe.py`: paste an item of the todo and it updates the
+  recipe to that version (SRCREV or checksum, and the file name) and
+  commits it with the item as message. `--yes < item.txt` commits one
+  item without asking and without the editor, for scripts and AI agents.
+- `./backport.py <pn>`: takes a recipe from upstream OE into
+  meta-venus-backports, or updates it there.
+- `git cherry-pick -x <commit in master>`, in the meta repo: backports a
+  whole commit, such as a version bump.
+- `git -C <project> format-patch -1 <commit> -o <absolute dir>`: a single
+  change as a patch; put it in `<pn>/` next to the recipe.
+- `./add-patch.py <recipe.bb> <patch>`: adds that patch to the SRC_URI.
+- `recipetool setvar <recipe.bb> PR <n>`, in the bitbake shell: adds the
+  PR or sets it.
+
+Building, testing and releasing:
+- `./do-ci-build.sh <new branch>`: commits the branches checked out in
+  `sources/` into the configs on a venus branch of that name, and
+  force-pushes it to the `builder` remote for CI to build. Push the
+  branches in `sources/` first; see the
+  [howto](https://github.com/victronenergy/venus-private/wiki/howto-use-do_ci_build.sh).
+- `./swu.sh [-p port] <host>`: installs the swu built here on the GX at
+  that host.
+- `./venus-version.sh`: the Venus OS version of the checkout in `sources/`.
+- `./do_release.sh testing|candidate|release`: copies the feed before it
+  to that one: develop to testing, testing to candidate, candidate to
+  release.
+
+Not run by hand: `git-fetch-remote.sh`, `git-show-remote.sh`,
+`venus-init-build-env` and `build/bitbake-mc.sh` are used by the Makefile,
+`git-update-wip-branches.sh` by do-ci-build.sh, `git-push-status.py` by
+push-status.sh, and the other `ci-*.sh` by `.gitlab-ci.yml`.
+
+
 ### Maintenance releases
 
 #### How to create a new maintenance branch
