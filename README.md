@@ -268,7 +268,9 @@ Changes need to be either really small, well tested or very important
 1. only take changes from master: cherry-picking
 2. don't add changes or new versions that are not in master yet
 3. `git cherry-pick -x` appends a nice (cherry-picked from [ref]) line to the commit message
-4. add and/or increase the PR when adding patches
+4. add and/or increase the PR when adding patches, f.e. by using
+   `recipetool setvar` (see [Tools](#tools)). Start the commit title with
+   `<pn> v<version>-rev<PR>:`, such as `vrmlogger v2.415-rev2:`
 5. drop the PR again when going to a clean version
 6. when adding patches; add a `backported from` note just like
    [this one](https://github.com/victronenergy/meta-victronenergy-private/commit/22ac88f61cc6f13cce1d2fc5455248e066e7a835)
